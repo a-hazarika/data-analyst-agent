@@ -1,0 +1,39 @@
+# The only schema the model sees. Add views and columns here, then run build_views.py.
+# scope: direct (table has seller_id) | via_order (has order_id) | via_customer (has customer_id) | none
+views:
+  order_items:
+    source: raw.olist_order_items
+    scope: direct
+    description: One row per item in an order. An order can have several items.
+    columns:
+      order_id: {source: order_id, description: 'The order this item belongs to'}
+      item_number: {source: order_item_id, description: 'Position of the item within its order, starting at 1'}
+      product_id: {source: product_id, description: 'The product sold'}
+      price: {source: price, description: 'Item price in BRL, without shipping'}
+      shipping_cost: {source: freight_value, description: 'Shipping charged for this item in BRL'}
+      ship_by: {source: shipping_limit_date, description: 'Deadline for the seller to hand the item to the carrier'}
+  orders:
+    source: raw.olist_orders
+    scope: via_order
+    description: One row per order.
+    columns:
+      order_id: {source: order_id, description: 'Order id'}
+      customer_id: {source: customer_id, description: 'Customer who placed the order'}
+      status: {source: order_status, description: 'One of: created, approved, invoiced, processing, shipped, delivered, canceled, unavailable'}
+      ordered_at: {source: order_purchase_timestamp, description: 'When the order was placed'}
+      shipped_at: {source: order_delivered_carrier_date, description: 'When it was handed to the carrier; empty if not yet shipped'}
+      delivered_at: {source: order_delivered_customer_date, description: 'When the customer received it; empty if not yet delivered'}
+      estimated_delivery_at: {source: order_estimated_delivery_date, description: 'Delivery date promised to the customer'}
+  customers:
+    source: raw.olist_customers
+    scope: via_customer
+    description: One row per order's customer record. The same person can appear on several rows.
+    columns:
+      customer_id: {source: customer_id, description: 'Links to orders.customer_id'}
+      person_id: {source: customer_unique_id, description: 'The same value for every order by the same person'}
+      city: {source: customer_city, description: 'Customer city, lower case'}
+      state: {source: customer_state, description: 'Two-letter Brazilian state code'}
+joins:
+  - order_items.order_id = orders.order_id
+  - orders.customer_id = customers.customer_id
+  

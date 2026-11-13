@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from db import Document, get_session
+from sql_agent import ask_sql, uses_only_views
 
 app = FastAPI()
 
@@ -10,8 +11,10 @@ class AskRequest(BaseModel):
     question: str = Field(min_length=3, max_length=500)
 
 class AskResponse(BaseModel):
-    answer: str
-    sql: str | None = None
+    sql: str
+    explanation: str
+    input_tokens: int   
+    output_tokens: int 
 
 @app.get("/health")
 def health() -> dict[str, str]:
@@ -19,9 +22,12 @@ def health() -> dict[str, str]:
 
 @app.post("/ask")
 def ask(body: AskRequest) -> AskResponse:
-    if "drop" in body.question.lower():
-        raise HTTPException(status_code=400, detail="That question is not allowed.")
-    return AskResponse(answer=f"You asked: {body.question}")
+    result = ask_sql(body.question)
+    if not uses_only_views(result.sql):
+        raise HTTPException(status_code=400, detail="The generated SQL used a table that is not allowed.")
+    # result is a SqlResult; model_dump() turns it into a dict whose keys
+    # match AskResponse's fields.
+    return AskResponse(**result.model_dump())
 
 @app.get("/documents")
 def list_documents(session: Session = Depends(get_session)) -> list[dict]:
