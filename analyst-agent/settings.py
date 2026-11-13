@@ -5,5 +5,6 @@ class Settings(BaseSettings):
     database_url: str
     readonly_database_url: str
     anthropic_api_key: str
+    model_name: str
     
 settings = Settings()
