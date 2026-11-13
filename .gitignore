@@ -1,4 +1,22 @@
+#secrets
 .env
 .env.*
-.env*
+!.env.example
+secrets/
+
+#python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cahce/
+
+#Dataset and downloads
 /data
+/olist-brazilian-ecommerce
+/project1-data-kit
+*.zip
+
+#Editor and OS
+.vscode/
+Thumbs.db
