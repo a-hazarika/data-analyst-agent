@@ -27,6 +27,14 @@ SCOPES = {
         "JOIN raw.olist_order_items i ON i.order_id = o.order_id "
         f"WHERE o.customer_id = t.customer_id AND i.seller_id = {SELLER})"
     ),
+    # For a table keyed by the person (customer_unique_id), such as the names
+    # table: the seller sees a person only if that person ordered from them.
+    "via_person": (
+        "WHERE EXISTS (SELECT 1 FROM raw.olist_customers c "
+        "JOIN raw.olist_orders o ON o.customer_id = c.customer_id "
+        "JOIN raw.olist_order_items i ON i.order_id = o.order_id "
+        f"WHERE c.customer_unique_id = t.customer_unique_id AND i.seller_id = {SELLER})"
+    ),
 }
 
 def view_sql(name: str, view: dict) -> list[str]:
