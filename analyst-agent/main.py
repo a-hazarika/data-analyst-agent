@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from db import Document, get_session
 from sql_agent import ask_sql, uses_only_views
+from validator import UnsafeSql, validate
 
 app = FastAPI()
 
@@ -23,11 +24,21 @@ def health() -> dict[str, str]:
 @app.post("/ask")
 def ask(body: AskRequest) -> AskResponse:
     result = ask_sql(body.question)
-    if not uses_only_views(result.sql):
-        raise HTTPException(status_code=400, detail="The generated SQL used a table that is not allowed.")
-    # result is a SqlResult; model_dump() turns it into a dict whose keys
-    # match AskResponse's fields.
-    return AskResponse(**result.model_dump())
+    try:
+        # Every query goes through the validator. What comes back is
+        # the checked SQL with a row limit; that is what we return (and, from
+        # what we run later). The model's original text is never used again.
+        safe_sql = validate(result.sql)
+    except UnsafeSql as error:
+        # 400 = the request could not be served as asked. The message says
+        # which rule was broken and contains nothing secret.
+        raise HTTPException(status_code=400, detail=f"The generated SQL was refused: {error}")
+    return AskResponse(
+        sql=safe_sql,
+        explanation=result.explanation,
+        input_tokens=result.input_tokens,
+        output_tokens=result.output_tokens,
+    )
 
 @app.get("/documents")
 def list_documents(session: Session = Depends(get_session)) -> list[dict]:

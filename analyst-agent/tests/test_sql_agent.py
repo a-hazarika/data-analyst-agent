@@ -64,7 +64,7 @@ def test_ask_endpoint_returns_sql(monkeypatch):
     monkeypatch.setattr(sql_agent, "call_model", lambda q: fake_response("SELECT count(*) FROM orders"))
     response = client.post("/ask", json={"question": "How many orders do I have?"})
     assert response.status_code == 200
-    assert response.json()["sql"] == "SELECT count(*) FROM orders"
+    assert response.json()["sql"] == "SELECT COUNT(*) FROM orders LIMIT 200"
 
 
 def test_ask_endpoint_refuses_real_tables(monkeypatch):

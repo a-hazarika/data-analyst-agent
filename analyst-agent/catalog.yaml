@@ -33,7 +33,60 @@ views:
       person_id: {source: customer_unique_id, description: 'The same value for every order by the same person'}
       city: {source: customer_city, description: 'Customer city, lower case'}
       state: {source: customer_state, description: 'Two-letter Brazilian state code'}
+  customer_names:
+    source: raw.customer_names
+    scope: via_person
+    description: The name of each person who has ordered from this seller. One row per person.
+    columns:
+      person_id: {source: customer_unique_id, description: 'Links to customers.person_id'}
+      name: {source: customer_name, description: 'Full name'}
+  payments:
+    source: raw.olist_order_payments
+    scope: via_order
+    description: One row per payment on an order. An order paid in two ways has two rows.
+    columns:
+      order_id: {source: order_id, description: 'The order that was paid'}
+      payment_number: {source: payment_sequential, description: 'Position of this payment within the order, starting at 1'}
+      payment_type: {source: payment_type, description: 'One of: credit_card, boleto, voucher, debit_card, not_defined'}
+      installments: {source: payment_installments, description: 'Number of instalments the customer chose'}
+      amount: {source: payment_value, description: 'Amount paid in BRL'}
+  reviews:
+    source: raw.olist_order_reviews
+    scope: via_order
+    description: One row per customer review of an order.
+    columns:
+      review_id: {source: review_id, description: 'Review id'}
+      order_id: {source: order_id, description: 'The order that was reviewed'}
+      score: {source: review_score, description: 'Stars from 1 (worst) to 5 (best)'}
+      title: {source: review_comment_title, description: 'Review title in Portuguese; often empty'}
+      comment: {source: review_comment_message, description: 'Review text in Portuguese; often empty'}
+      created_at: {source: review_creation_date, description: 'When the review form was sent to the customer'}
+      answered_at: {source: review_answer_timestamp, description: 'When the customer answered'}
+  products:
+    source: raw.olist_products
+    scope: none
+    description: One row per product in the marketplace catalogue. Shared by all sellers.
+    columns:
+      product_id: {source: product_id, description: 'Links to order_items.product_id'}
+      category: {source: product_category_name, description: 'Category name in Portuguese; empty for some products'}
+      weight_g: {source: product_weight_g, description: 'Weight in grams'}
+      length_cm: {source: product_length_cm, description: 'Package length in cm'}
+      height_cm: {source: product_height_cm, description: 'Package height in cm'}
+      width_cm: {source: product_width_cm, description: 'Package width in cm'}
+      photos: {source: product_photos_qty, description: 'Number of photos on the listing'}
+  categories:
+    source: raw.product_category_name_translation
+    scope: none
+    description: English names for the product categories.
+    columns:
+      category: {source: product_category_name, description: 'Category name in Portuguese; links to products.category'}
+      category_english: {source: product_category_name_english, description: 'Category name in English, lower case with underscores'}
 joins:
   - order_items.order_id = orders.order_id
+  - order_items.product_id = products.product_id
   - orders.customer_id = customers.customer_id
+  - customers.person_id = customer_names.person_id
+  - payments.order_id = orders.order_id
+  - reviews.order_id = orders.order_id
+  - products.category = categories.category
   
